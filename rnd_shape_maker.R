@@ -326,7 +326,7 @@ ggplot(data = rw_control_points)+
 summary(rw_control_points)
 ?scale_radius
 
-#random walk with small angular deviations in each step (it creates biased data, as seen on large walks)
+#random walk with small angular deviations in each step (it creates biased data, as seen on long walks)
 
 theta_runif <- function(n = 1, min = 0, max = 2*pi, ...){
   (runif(n, min, max))
