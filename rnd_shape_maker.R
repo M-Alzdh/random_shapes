@@ -6,7 +6,7 @@ library(ggforce)
 library(bezier)
 
 
-### this function is used throughout to create n random colors, to set 'alpha = t" for variable opacity
+### this function is used throughout to create n random colors, to set 'alpha = T" for variable opacity
 
 rnd_colors <- function(n, alpha = F){
   random_colors <- vector("character", n)
@@ -22,6 +22,17 @@ rnd_colors <- function(n, alpha = F){
   }  
   random_colors
 }
+
+### these two functions are used in random walks to generate the next step
+
+theta_runif <- function(n = 1, min = 0, max = 2*pi, ...){
+  (runif(n, min, max))
+}
+
+theta_rnorm <- function(mean = pi, sd = pi/2, ...){
+  (rnorm(1, mean = mean, sd = sd))
+}
+
 
 # spiral makers -----------------------------------------------------------
 
@@ -424,206 +435,98 @@ rnd_walk_small_dev(n_walks = 15, n_steps = 20, type = "spline")
 
 # circles on random walks -------------------------------------------------
 
+### this function first creates random points (similar to nodes on a random walk)
+### and then draws circles on those
 
-rw_circles <- tibble(x = numeric(), y = numeric(), r = numeric(), group = factor())
-
-for(j in 1:10){ 
-  temp <- tibble(x = c(0,runif(1, -1, 1)), y = c(0, runif(1, -1, 1)), r = c(x[1]/4, x[2])/4, group = c(factor(j), factor(j)))
-  group <- j
-  for(i in 1:10){
-    x <-  temp$y[i+1]  + rnorm(1, 0,  abs(temp$x[i+1])/2) #+ (temp$x[i+1]/10)
-    y <-  temp$x[i+1] + rnorm(1, 0, abs(temp$y[i+1])/2) #+ (temp$y[i+1]/10)
-    r <- (abs(x) + abs(y)) / 10 # + runif(1, x/10, x/10)
-    group <- group
-    temp <- rbind(temp, c(x, y, r, group))
-    rm(x, y, r)
+rnd_circles_rnd_walks <- function(n_walks = 10, n_circles = 10){
+  rw_circles <- tibble(x = numeric(), y = numeric(), r = numeric(), group = factor())
+  for(j in 1:n_walks){ 
+    temp <- tibble(x = c(0,runif(1, -1, 1)), y = c(0, runif(1, -1, 1)), r = c(x[1]/4, x[2])/4, group = c(factor(j), factor(j)))
+    group <- j
+    for(i in 1:n_circles){
+      
+      # here, x and y are generated y and x in the previous step, plus/minus some random value
+      # changing how x and y are generated can greatly change how the final graph looks like
+      # the size of the circles is a function of their distance from [0,0]
+      
+      x <-  temp$y[i+1]  + runif(1, -abs(temp$x[i+1]),  abs(temp$x[i+1])) #+ (temp$x[i+1]/10)
+      y <-  temp$x[i+1] + runif(1, -abs(temp$y[i+1]), abs(temp$y[i+1])) #+ (temp$y[i+1]/10)
+      r <- sqrt(abs(x) + abs(y))/6 # + runif(1, x/10, x/10)
+      group <- group
+      temp <- rbind(temp, c(x, y, r, group))
+      rm(x, y, r)
+    }
+    rw_circles <- rbind(rw_circles, temp)
+    rm(temp, group)
   }
-  rw_circles <- rbind(rw_circles, temp)
-  rm(temp, group)
+
+  ggplot(data = rw_circles)+
+    geom_circle(aes(x0 = y, y0 =x, r = r, fill = group, linetype = NA), alpha = 0.7, show.legend = F)+
+    # r is used to randomly make the circle with the line around it larger or smaller
+    geom_circle(aes(x0 = y, y0 =x, r = r*rnorm(n_walks*(n_circles+2), 1, 1), fill = group), alpha = 0.7, show.legend = F)+
+    coord_fixed()+
+    scale_fill_manual(values = rnd_colors(n_walks))+
+    theme(panel.background = element_blank(), 
+          panel.grid = element_blank(), 
+          axis.title = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.text = element_blank())
+
+
 }
 
-ggplot(data = rw_circles)+
-  geom_path(aes(x, y, group = group))+
-  coord_fixed()
-
-ggplot(data = rw_circles)+
-  geom_circle(aes(x0 = y, y0 =x, r = r, fill = group, linetype = NA), alpha = 0.7, show.legend = F)+
-  geom_circle(aes(x0 = y, y0 =x, r = r*rnorm(120), fill = group), alpha = 0.7, show.legend = F)+
-  coord_fixed()+
-  scale_fill_manual(values = fill_colors_rw_circles)+
-  theme(panel.background = element_blank(), 
-        panel.grid = element_blank(), 
-        axis.title = element_blank(), 
-        axis.ticks = element_blank(), 
-        axis.text = element_blank())
-
-
-
-fill_colors_rw_circles <- c("a"="grey40",
-                            "b"="grey50",
-                            "c"="grey60",
-                            "d"="grey70",
-                            "e"="grey80",
-                            "f"="grey90",
-                            "g" = "white",
-                            "h" = "black",
-                            "1"= "#40c0ff", "2"="#E69F00", "3" = "#56B4E9",
-                            "4"= "#009E73","5" = "#F0E442","6" = "#0072B2", 
-                            "7" ="#D55E00","8"= "#CC79A7", "9" = "#ffc066", 
-                            "10" = "550022", "11"= '440044')
-
-
+#test the function
+rnd_circles_rnd_walks(n_walks = 10, n_circles = 10)
 
 # random circles on random spines ------------------------------------------------
 
+### this function first selcts a number of control points (n_control_points), then fits a 
+### bezier curve to them, then draws n_circles equally spaced circles on the curve 
+### the function repeats this nsplines times
+### computing equally spaced points on a curve takes a while
 
-random_points2 <- tibble(x = seq(0, 1, length.out = 5), 
-                         y = runif(5, -1, 1), 
-                         group = factor(1))
-
-x1 <- splinefun(random_points1$x, random_points1$y)
-
-x2 <- splinefun(random_points2$x, random_points2$y)
-
-plot_points2 <- tibble(x = seq(from = 0, to = 1, length.out = 20), 
-                       y = x2(x), 
-                       r = y/2,
-                       group = factor(2))
-plot_points <- rbind(plot_points, plot_points2)
-
-
-plot_points %>% 
-  mutate(r = r/4, y = y/2) %>% 
-  ggplot()+
-  geom_circle(aes(x0=x, y0=y, r = r, fill = group, linetype = NA), alpha = 1/3)+
-  coord_fixed()+
-  theme(panel.background = element_blank(), 
-        panel.grid = element_blank(), 
-        axis.title = element_blank(), 
-        axis.ticks = element_blank(), 
-        axis.text = element_blank())
-summary(plot)
-
-x <- function(x) c(x1(x), x)
-f <- function(t) c(sin(2*t), cos(t), t)
-
-#### using "pointsOnBezier" from "bezier" package
-
-random_points1 <- tibble(x = seq(0, 1, length.out = 10),
-                         y = runif(10, -1, 1))                        
-m_random_points1 <- as.matrix(random_points1)
-
-b_random_points1 <- bezier(t = seq(0, 1, length = 100), p = m_random_points1)
-
-pob1 <- pointsOnBezier(p = m_random_points1, n = 20, method = "evenly_spaced", print.progress = T)
-
-pob_tb1 <- tibble(x = pob1$points[,1],
-                  y = pob1$points[,2], 
-                  r = y/4, 
-                  group = factor(1))
-
-
-
-## generating a second set of points
-
-random_points2 <- tibble(x = seq(0, 1, length.out = 10),
-                         y = runif(10, -1, 1))                        
-m_random_points2 <- as.matrix(random_points2)
-
-b_random_points2 <- bezier(t = seq(0, 1, length = 100), p = m_random_points2)
-
-pob2 <- pointsOnBezier(p = m_random_points2, n = 20, method = "evenly_spaced", print.progress = T)
-
-pob_tb2 <- tibble(x = pob2$points[,1] + rep(runif(1, 0, 0.2), 20),
-                  y = pob2$points[,2], 
-                  r = y/4, 
-                  group = factor(2))
-
-## third set
-random_points3 <- tibble(x = seq(0, 1, length.out = 10),
-                         y = runif(10, -1, 1))                        
-m_random_points3 <- as.matrix(random_points3)
-
-b_random_points3 <- bezier(t = seq(0, 1, length = 100), p = m_random_points3)
-
-pob3 <- pointsOnBezier(p = m_random_points3, n = 20, method = "evenly_spaced",sub.relative.min.slope = 0.01, print.progress = T)
-
-pob_tb3 <- tibble(x = pob3$points[,1] - rep(runif(1, 0, 0.2), 20),
-                  y = pob3$points[,2], 
-                  r = y/4, 
-                  group = factor(3))
-
-points_tb <- rbind(pob_tb1, pob_tb2, pob_tb3)
-
-ggplot(data = points_tb)+
-  geom_circle(aes(x0 = x, y0 = y, r = r, fill = group, linetype = NA), alpha = 1)+
-  coord_fixed()+
-  theme(panel.background = element_blank(), 
-        panel.grid = element_blank(), 
-        axis.title = element_blank(), 
-        axis.ticks = element_blank(), 
-        axis.text = element_blank())+
-  scale_fill_viridis_d()
-?pointsOnBezier
-
-circles_on_splines <- function(ncircles= 20, nsplines = 10, ncontrol_points = 5, 
-                               minx = 0, maxx = 1, miny = -0.5, maxy = 0.5, ...){
+rnd_circles_on_splines <- function(n_circles= 20, n_splines = 10, n_control_points = 5, 
+                               min_x = 0, max_x = 1, min_y = -0.5, max_y = 0.5, ...){
   pob_tb <- tibble(x = numeric(), y = numeric(), r = numeric(), group = factor())
-  for(i in 1:nsplines){
-    random_points <- tibble(x = c(0, runif(1, minx/3, maxx/3), seq(minx, maxx-0.3, length.out = ncontrol_points), maxx-0.2, maxx),
-                            y = c(0, runif(1, miny/3, maxy/3), runif(ncontrol_points, miny, maxy), runif(1, miny/3, maxy/3), 0))
+  for(i in 1:n_splines){
+    random_points <- tibble(x = c(0, runif(1, min_x/3, max_x/3), seq(min_x, max_x-0.3, length.out = n_control_points), max_x-0.2, max_x),
+                            y = c(0, runif(1, min_y/3, max_y/3), runif(n_control_points, min_y, max_y), runif(1, min_y/3, max_y/3), 0))
     random_points_matrix <- as.matrix(random_points)
-    pob <- pointsOnBezier(p = random_points_matrix, n = ncircles, method = "evenly_spaced", sub.relative.min.slope = 0.1, print.progress = F)
+    pob <- pointsOnBezier(p = random_points_matrix, n = n_circles, method = "evenly_spaced", sub.relative.min.slope = 0.1, print.progress = F)
     temp_pob_tb <- tibble(x = pob$points[,1],
                           y = pob$points[,2], 
                           r = (y/8) + sign(y)*0.10, 
                           group = factor(i))
     pob_tb <- rbind(pob_tb, temp_pob_tb)
-    percent <- round((i/nsplines)*100)
+    percent <- round((i/n_splines)*100)
     writeLines(paste(percent, "...", "%", sep = ""))
     rm(random_points, random_points_matrix, pob, temp_pob_tb)
   }
   ggplot(data = pob_tb)+
     geom_circle(aes(x0 = x, y0 = y, r = r, fill = group, linetype = NA), alpha = 1/4, show.legend = F)+
+    # r is used to randomly make the circle with the line around it larger or smaller
+    geom_circle(aes(x0 = x, y0 = y, r = r*runif(nrow(pob_tb)), fill = group, linetype = NA), alpha = 1/4, show.legend = F)+
     coord_fixed()+
-    #geom_path(aes(x, y, color = group))+
+    scale_fill_manual(values = rnd_colors(n_splines, alpha = T))+
     theme(panel.background = element_blank(), 
           panel.grid = element_blank(), 
           axis.title = element_blank(), 
           axis.ticks = element_blank(), 
           axis.text = element_blank())
 }
-circles_on_splines(ncircles = 30, nsplines = 5, ncontrol_points = 20, maxx = 5, miny = -4, maxy = 4)
+rnd_circles_on_splines(n_circles = 10, n_splines = 5, n_control_points = 5, max_x = 5, min_y = -4, max_y = 4)
+
+
+
+
+
+
+
+
+
+##### ANYTHING AFTER THIS POINT IS A WORK IN PROGRESS
 
 # eliptical fields --------------------------------------------------------
-
-?sample
-
-# Lets make some data
-arcs <- data.frame(
-  start = seq(0, 2 * pi, length.out = 11)[-11],
-  end = seq(0, 2 * pi, length.out = 11)[-1],
-  r = rep(1:2, 5)
-)
-
-# Behold the arcs
-ggplot(arcs) +
-  geom_arc(aes(x0 = 0, y0 = 0, r = r, start = start, end = end,
-               linetype = factor(r)))
-
-ggplot(arcs) +
-  geom_arc(aes(x0 = 0, y0 = 0, r = r, start = start, end = end,
-               size = stat(index)), lineend = 'round') +
-  scale_radius() # linear size scale
-
-arcs2 <- data.frame(
-  angle = c(arcs$start, arcs$end),
-  r = rep(arcs$r, 2),
-  group = rep(1:10, 2),
-  colour = sample(letters[1:5], 20, TRUE)
-)
-
-
 
 elipses <- tibble(x = rep(0, 10), 
                   y = 1:10, 
