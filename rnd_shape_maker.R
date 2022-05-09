@@ -478,6 +478,9 @@ rnd_circles_rnd_walks <- function(n_walks = 10, n_circles = 10){
 #test the function
 rnd_circles_rnd_walks(n_walks = 10, n_circles = 10)
 
+
+
+
 # random circles on random spines ------------------------------------------------
 
 ### this function first selcts a number of control points (n_control_points), then fits a 
