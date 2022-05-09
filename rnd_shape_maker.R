@@ -4,7 +4,6 @@
 library(tidyverse)
 library(ggforce)
 library(bezier)
-library(colortools)
 
 
 ### this function is used throughout to create n random colors, to set 'alpha = t" for variable opacity
@@ -264,6 +263,10 @@ rnd_waves()
 
 # random walk trees -------------------------------------------------------
 
+### these fucntions simulate random walks and draw paths or splines on them
+### some depend on the two following functions to pick the next step
+### find an efficient way to randominze colors
+
 theta_runif <- function(n = 1, min = 0, max = 2*pi, ...){
   (runif(n, min, max))
 }
@@ -275,69 +278,83 @@ theta_rnorm <- function(mean = pi, sd = pi/2, ...){
 
 
 #random walk keeping step length constant
-rw_control_points <- tibble(x = numeric(), y = numeric() , angle = numeric(), step = numeric(),  group = factor())
-for(j in 1:10){ 
-  temp <- tibble(x = 0, y = 0, angle = 0, step = 0, group = factor(j))
-  group <- j
-  for(i in 1:100){
-    angle <- theta_runif()
-    x <-  temp$x[i]+(cos(angle))
-    y <-  temp$y[i]+(sin(angle))
-    step <- cos(angle)**2 + sin(angle)**2
-    group <- group
-    temp <- rbind(temp, c(x, y, angle, step, group))
+
+rnd_walk_constant_step <- function(n_walks = 10, n_steps = 10){
+  rw_control_points <- tibble(x = numeric(), y = numeric() , angle = numeric(),
+                              step = numeric(),  group = factor())
+  for(j in 1:n_walks){ 
+    temp <- tibble(x = 0, y = 0, angle = 0, step = 0, group = factor(j))
+    group <- j
+    for(i in 1:n_steps){
+      angle <- theta_runif()
+      x <-  temp$x[i]+(cos(angle))
+      y <-  temp$y[i]+(sin(angle))
+      step <- cos(angle)**2 + sin(angle)**2
+      group <- group
+      temp <- rbind(temp, c(x, y, angle, step, group))
+    }
+    rw_control_points <- rbind(rw_control_points, temp)
+    rm(temp, group)
   }
-  rw_control_points <- rbind(rw_control_points, temp)
-  rm(temp, group)
+  
+  ggplot(data = rw_control_points)+
+    geom_path(aes(x, y, color = group), show.legend = F)+
+    coord_fixed()+
+    theme(panel.background = element_blank(), 
+          panel.grid = element_blank(), 
+          axis.title = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.text = element_blank())
 }
 
-ggplot(data = rw_control_points)+
-  geom_path(aes(x, y, color = group))+
-  coord_fixed()
-summary(rw_control_points)
 
+#test the function
+rnd_walk_constant_step(n_steps = 100, n_walks = 10)
 
 
 #random walk with variable step length
 
-rw_control_points <- tibble(x = numeric(), y = numeric(), x_angle = numeric(), y_angle = numeric(), step = numeric(),
-                            indx = numeric(), group = factor())
-for(j in 1:10){ 
-  temp <- tibble(x = 0, y = 0, x_angle = 0, y_angle = 0, step = 0, indx = 1, group = factor(j))
-  group = j
-  for(i in 1:10){
-    x_angle <- theta_runif()
-    y_angle <- theta_runif()
-    x <-  temp$x[i]+(sin(x_angle))
-    y <-  temp$y[i]+(cos(y_angle))
-    step <- sin(x_angle)**2 + cos(y_angle)**2
-    indx = temp$indx[i]+1
-    group <- group
-    temp <- rbind(temp, c(x, y, x_angle, y_angle, step,indx, group))
+### this function does not keep step length constant
+### also, the line gets thicker as it grows
+
+rnd_walk_var_step <- function(n_walks = 10, n_steps = 10){
+  rw_control_points <- tibble(x = numeric(), y = numeric(), x_angle = numeric(), y_angle = numeric(), step = numeric(),
+                              indx = numeric(), group = factor())
+  for(j in 1:n_walks){ 
+    temp <- tibble(x = 0, y = 0, x_angle = 0, y_angle = 0, step = 0, indx = 1, group = factor(j))
+    group = j
+    for(i in 1:n_steps){
+      x_angle <- theta_runif()
+      y_angle <- theta_runif()
+      x <-  temp$x[i]+(sin(x_angle))
+      y <-  temp$y[i]+(cos(y_angle))
+      step <- sin(x_angle)**2 + cos(y_angle)**2
+      indx = temp$indx[i]+1
+      group <- group
+      temp <- rbind(temp, c(x, y, x_angle, y_angle, step,indx, group))
+    }
+    rw_control_points <- rbind(rw_control_points, temp)
+    rm(temp, group)
   }
-  rw_control_points <- rbind(rw_control_points, temp)
-  rm(temp, group)
+  
+  ggplot(data = rw_control_points)+
+    geom_path(aes(x, y, color = group, size = sqrt(indx)), lineend = "round", show.legend = F, alpha = 0.7)+
+    coord_fixed()+
+    theme(panel.background = element_blank(), 
+          panel.grid = element_blank(), 
+          axis.title = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.text = element_blank())
 }
 
-ggplot(data = rw_control_points)+
-  geom_path(aes(x, y, color = group, size = sqrt(indx)), lineend = "round")+
-  coord_fixed()+
-  scale_radius()
-summary(rw_control_points)
-?scale_radius
+#test the function
+rnd_walk_var_step(n_walks = 5, n_steps = 20)
+  
 
 #random walk with small angular deviations in each step (it creates biased data, as seen on long walks)
 
-theta_runif <- function(n = 1, min = 0, max = 2*pi, ...){
-  (runif(n, min, max))
-}
 
-theta_rnorm <- function(mean = pi, sd = pi/2, ...){
-  (rnorm(1, mean = mean, sd = sd))
-}
-
-
-rw_control_points <- tibble(x = numeric(), y = numeric() , angle_with_x = numeric(),  group = factor())
+"rw_control_points <- tibble(x = numeric(), y = numeric() , angle_with_x = numeric(),  group = factor())
 
 for(j in 1:100){ 
   temp <- tibble(x = c(0,runif(1, -1, 1)), y = c(0, runif(1, -1, 1)), group = c(factor(j), factor(j)),
@@ -359,48 +376,50 @@ for(j in 1:100){
 ggplot(data = rw_control_points)+
   geom_path(aes(x, y, group = group))+
   coord_fixed()
-summary(rw_control_points)
+summary(rw_control_points)"
 
 
 #random walk with small angular deviations (points selected using coordinates, not trig functions)
+### can do either splines or paths (use' type = "spline"' for splines)
 
-theta_runif <- function(n = 1, min = 0, max = 2*pi, ...){
-  (runif(n, min, max))
-}
-
-theta_rnorm <- function(mean = pi, sd = pi/2, ...){
-  (rnorm(1, mean = mean, sd = sd))
-}
-
-
-rw_control_points <- tibble(x = numeric(), y = numeric() , angle_with_x = numeric(),  group = factor())
-
-for(j in 1:20){ 
-  temp <- tibble(x = c(0,runif(1, -1, 1)), y = c(0, runif(1, -1, 1)), group = c(factor(j), factor(j)),
-                 angle_with_x = c(0, atan(x[2]-x[1] / y[2]-y[1])))
-  group <- j
-  for(i in 1:10){
-    new_angle_with_x <- temp$angle_with_x[i+1] - theta_runif(1, max= pi/6)
-    x <-  temp$x [i+1] + runif(1, -1, 1)
-    y <-  temp$y[i+1] + rnorm(1, 0, (abs(temp$x[i+1]))**1/4)
-    angle_with_x <- atan(x-temp$x[i] / y-temp$y[i+1])
-    group <- group
-    temp <- rbind(temp, c(x, y, group, angle_with_x))
-    rm(x, y, angle_with_x)
+rnd_walk_small_dev <- function(n_walks = 10, n_steps = 10, type = "path"){
+  rw_control_points <- tibble(x = numeric(), y = numeric() , group = factor())
+  for(j in 1:n_walks){ 
+    temp <- tibble(x = c(0,runif(1, -1, 1)), y = c(0, runif(1, -1, 1)), group = c(factor(j), factor(j)))
+    group <- j
+    for(i in 1:n_steps){
+      x <-  temp$x [i+1] + runif(1, -1, 1)
+      y <-  temp$y[i+1] + rnorm(1, 0, (abs(temp$x[i+1]))**1/4)
+      group <- group
+      temp <- rbind(temp, c(x, y, group))
+      rm(x, y)
+    }
+    rw_control_points <- rbind(rw_control_points, temp)
+    rm(temp, group)
   }
-  rw_control_points <- rbind(rw_control_points, temp)
-  rm(temp, group)
+  if(type == "spline"){
+    ggplot(data = rw_control_points)+
+      geom_bspline(aes(x, y, color = group), show.legend = F)+
+      coord_fixed()+
+      theme(panel.background = element_blank(), 
+            panel.grid = element_blank(), 
+            axis.title = element_blank(), 
+            axis.ticks = element_blank(), 
+            axis.text = element_blank())
+  } else {
+    ggplot(data = rw_control_points)+
+      geom_path(aes(x, y, color = group), show.legend = F)+
+      coord_fixed()+
+      theme(panel.background = element_blank(), 
+            panel.grid = element_blank(), 
+            axis.title = element_blank(), 
+            axis.ticks = element_blank(), 
+            axis.text = element_blank())
+  }
 }
 
-ggplot(data = rw_control_points)+
-  geom_path(aes(x, y, group = group))+
-  coord_fixed()
-
-ggplot(data = rw_control_points)+
-  geom_bspline(aes(x, y, group = group))
-summary(rw_control_points)
-
-
+#test the function
+rnd_walk_small_dev(n_walks = 15, n_steps = 20, type = "spline")
 
 
 # circles on random walks -------------------------------------------------
