@@ -623,3 +623,65 @@ ggplot(mapping = aes(size = 1))+
 
 ?rgb
 
+
+# iris --------------------------------------------------------------------
+
+
+
+?geom_segment
+### generate random x and y
+
+x <- runif(50, -1, 1)
+y <- runif(50, -1, 1)
+
+which_quad <- function(x, y){
+ case_when(
+   x > 0 & y > 0 ~ 1,
+   x <= 0 & y > 0 ~ 2,
+   x <= 0 & y <= 0 ~ 3,
+   x > 0 & y <= 0 ~ 4
+ ) 
+}
+?if_else
+
+tb <- tibble(x = x, y = y, quad = which_quad(x, y), theta = atan(x/y),
+             x2 = case_when(
+               quad == 1 ~ sin(theta), 
+               quad == 2 ~ sin(theta), 
+               quad == 3 ~ -sin(theta), 
+               quad == 4 ~ -sin(theta)
+             ),
+            y2 = case_when(
+                quad == 1 ~ cos(theta), 
+                quad == 2 ~ cos(theta), 
+                quad == 3 ~ -cos(theta), 
+                quad == 4 ~ -cos(theta)
+              ), 
+            theta2 = theta + theta_runif(50, min = -pi/6, max = pi/6),
+            x3 = case_when(
+              quad == 1 ~ sin(theta2) + runif(1), 
+              quad == 2 ~ sin(theta2) - runif(1), 
+              quad == 3 ~ -sin(theta2) - runif(1),
+              quad == 4 ~ -sin(theta2) + runif(1)
+            ),
+            y3 = case_when(
+              quad == 1 ~ cos(theta2) + runif(1), 
+              quad == 2 ~ cos(theta2) + runif(1), 
+              quad == 3 ~ -cos(theta2) - runif(1), 
+              quad == 4 ~ -cos(theta2) - runif(1)
+            ), 
+            )
+
+
+
+
+ggplot(data = tb)+
+  geom_point(aes(x3, y3, color = as.factor(quad)))+
+  geom_point(aes(x2, y2, color = as.factor(quad)))+
+  geom_segment(aes(x = x2, y = y2, xend = x3, yend = y3), arrow = arrow())+
+  coord_fixed()
+
+?geom_segment
+
+plot(tb$theta)
+-sin(0.367)
