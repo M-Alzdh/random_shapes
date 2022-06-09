@@ -642,7 +642,9 @@ which_quad <- function(x, y){
    x > 0 & y <= 0 ~ 4
  ) 
 }
-?if_else
+
+
+
 
 tb <- tibble(x = x, y = y, quad = which_quad(x, y), theta = atan(x/y),
              x2 = case_when(
@@ -685,3 +687,50 @@ ggplot(data = tb)+
 
 plot(tb$theta)
 -sin(0.367)
+
+
+tb2 <- tibble(x = x, y = y, quad = which_quad(x, y), theta = atan(x/y),
+             x2 = case_when(
+               quad == 1 ~ sin(theta), 
+               quad == 2 ~ sin(theta), 
+               quad == 3 ~ -sin(theta), 
+               quad == 4 ~ -sin(theta)
+             ),
+             y2 = case_when(
+               quad == 1 ~ cos(theta), 
+               quad == 2 ~ cos(theta), 
+               quad == 3 ~ -cos(theta), 
+               quad == 4 ~ -cos(theta)
+             ),
+             theta2 = atan2(x2, y2)
+             )
+
+ggplot(data = tb2)+
+  geom_point(aes(x, y), color = "black")+
+  geom_point(aes(x2, y2), color = "red")+
+  geom_segment(aes(x = x, y = y, xend = x2, yend = y2), arrow = arrow())+
+  geom_text(aes(x = x2, y = y2, label = signif(theta2)))+
+  coord_fixed()
+
+tb3 <- tb2 %>% 
+  mutate(theta3 = theta2 + theta_rnorm(mean = theta2, sd = pi/6), 
+         x3 = 2*cos(theta3), 
+         y3 = 2*sin(theta3)
+         )
+ggplot(data = tb3)+
+  geom_point(aes(x2, y2), color = "black")+
+  geom_point(aes(x3, y3), color = "red")+
+  geom_segment(aes(x = x2, y = y2, xend = x3, yend = y3), arrow = arrow())+
+  #geom_text(aes(x = x2, y = y2, label = signif(theta3)))
+  coord_fixed()
+
+# whorl -------------------------------------------------------------------
+
+
+tb <- tibble(angle = seq(0, 2*pi, length.out = 100), 
+             x = cos(angle), y = sin(angle),
+               angle2 = angle + pi/20, 
+             x2 = 2*cos(angle2), y2 = 2*sin(angle2))
+ggplot(data = tb)+
+  geom_segment(aes(x = x, y = y, xend = x2, yend = y2))+
+  coord_fixed()
