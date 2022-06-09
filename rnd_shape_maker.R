@@ -730,7 +730,8 @@ ggplot(data = tb3)+
 tb <- tibble(angle = seq(0, 2*pi, length.out = 100), 
              x = cos(angle), y = sin(angle),
                angle2 = angle + pi/20, 
-             x2 = 2*cos(angle2), y2 = 2*sin(angle2))
+             d = runif(100, 1.8, 2),
+             x2 = d*cos(angle2), y2 = d*sin(angle2))
 ggplot(data = tb)+
   geom_segment(aes(x = x, y = y, xend = x2, yend = y2))+
   coord_fixed()
