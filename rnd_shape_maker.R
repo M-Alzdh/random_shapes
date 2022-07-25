@@ -735,3 +735,48 @@ tb <- tibble(angle = seq(0, 2*pi, length.out = 100),
 ggplot(data = tb)+
   geom_segment(aes(x = x, y = y, xend = x2, yend = y2))+
   coord_fixed()
+
+# smoothing ---------------------------------------------------------------
+
+
+  mtrx_smoother <- function(x, window_size = 3, smoother = mean){
+    # making sure that the inputs are the correct type size
+      ## x must be a matrix
+    stopifnot(is.matrix(x))
+      ## window must be an odd integer larger than 2
+    stopifnot(!is.integer(window_size))
+    stopifnot(window_size %% 2 != 0 | window_size > 2)
+    
+    #getting matrix info
+    n_row <- nrow(x)
+    n_col <- ncol(x)
+    
+    #smoothing
+      ## create empty matrix of the same size and pad the edges with 0's
+      mtrx <- x
+      mtrx <- rbind(0, mtrx, 0)
+      mtrx <- cbind(0, mtrx, 0)
+      print(mtrx)
+    
+      ## perform moving window smoothing
+      smoothed_mtrx <- mtrx
+      
+      for(i in 1:n_row + 1){
+        for(j in 1:n_col + 1){
+          smoothed_mtrx[i, j] <- mean(c(mtrx[i-1, j-1], mtrx[i-1, j], mtrx[i-1, j+1], 
+                                        mtrx[i, j-1], mtrx[i, j], mtrx[i, j+1], 
+                                        mtrx[i+1, j-1], mtrx[i+1, j], mtrx[i+1, j+1]))
+        }
+      }
+
+    smoothed_mtrx <- smoothed_mtrx[-c(1, n_row+2), -c(1, n_col+2)]
+    
+   (out <- list(input_matrix = x, smoothed_matrix = smoothed_mtrx))
+}
+
+
+
+tst_mtrx <- matrix(ceiling(runif(16, 1, 10)), nrow = 4)
+
+mtrx_smoother(tst_mtrx)
+
