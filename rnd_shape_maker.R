@@ -739,7 +739,7 @@ ggplot(data = tb)+
 # smoothing ---------------------------------------------------------------
 
 
-  mtrx_smoother <- function(x, window_size = 3, smoother = mean){
+mtrx_smoother <- function(x, window_size = 3, smoother = mean){
     # making sure that the inputs are the correct type size
       ## x must be a matrix
     stopifnot(is.matrix(x))
@@ -775,8 +775,30 @@ ggplot(data = tb)+
 }
 
 
+tst_mtrx <- matrix(runif(100, 0, 1000), nrow = 10)
 
-tst_mtrx <- matrix(ceiling(runif(16, 1, 10)), nrow = 4)
+lst<- mtrx_smoother(tst_mtrx)
 
-mtrx_smoother(tst_mtrx)
-
+  tb <- as_tibble(lst$smoothed_matrix)
+  colnames(tb) <- as.character(1:ncol(tb))
+  tb <- tb %>%
+    mutate(y = as.character(1:nrow(tb))) %>% 
+    pivot_longer(cols = !y, names_to = 'x', values_to = 'values')
+  
+ggplot(data = tb)+
+    geom_point(aes(x, y, size = values))
+  
+tb2 <- as_tibble(lst$input_matrix)
+  colnames(tb2) <- as.character(1:ncol(tb2))
+  tb2 <- tb2 %>%
+    mutate(y = as.character(1:nrow(tb2))) %>% 
+    pivot_longer(cols = !y, names_to = 'x', values_to = 'values')
+ggplot(data = tb2)+
+    geom_point(aes(x, y, size = values))  
+  
+ggplot()+
+  geom_density(data = tb, aes(values), fill = "red", alpha = 0.5)+
+  geom_density(data = tb2, aes(values), fill = "blue", alpha = 0.5)
+  
+vignette("pivot")
+lst$smoothed_matrix
