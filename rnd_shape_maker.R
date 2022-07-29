@@ -794,7 +794,7 @@ mtrx_smoother_v <- function(x, window_size = 3, smoother = mean,
   n_row <- nrow(x)
   n_col <- ncol(x)
   int_pad_size <- as.integer(pad_size)
-  num_neighbors <- (window_size - 1) / 2
+  num_neighbors <- (window_size - 1)/2
   
   #smoothing
   ## create 0's matrix of the same size and pad the edges with 0's if add_padding == TRUE
@@ -806,26 +806,40 @@ mtrx_smoother_v <- function(x, window_size = 3, smoother = mean,
     } else{
     input_mtrx <- x
   }
+  output_mtrx <- matrix(0, nrow = nrow(input_mtrx), ncol = ncol(input_mtrx))
 
-  input_mtrx
-  
-  output_mtrx <- matrix(NA, nrow = nrow(input_mtrx), ncol = ncol(input_mtrx))
-  
   ## perform moving window smoothing
   
   for(i in 1:nrow(output_mtrx)){
     for(j in 1:ncol(output_mtrx)){
       
       index <- c(i, j)
+      print(index)
       
       top <- max(1, index[1]-num_neighbors)
+      print(paste("TOP", top))
+      bottom <- max(1, index[1]+num_neighbors+1)
+      print(paste("bottom", bottom))
+      
+      left <- max(1, index[2]-num_neighbors)
+      print(paste("lef", left))
+      right <- max(1, index[2]+num_neighbors+1)
+      print(paste("right", right))
+    }
+  }
+}
+
+mtrx_smoother_v(tst_mtrx)
+
+"""      
+      top <- max(1, index[1]-num_neighbors)
       #this line causes errors for the bottom-most cells
-      bottom <- max(1, index[1]+num_neighbors)
+      bottom <- max(nrow(output_mtrx), index[1]+num_neighbors)
       
       left <- max(1, index[2]-num_neighbors)
       #this line causes errors for the right-most cells
-      right <- max(1, index[2]+num_neighbors)
-      
+      right <- max(ncol(output_mtrx), index[2]+num_neighbors)
+      print(top, bottom, left, right)
       output_mtrx[i, j] <- do.call(smoother, list(x = input_mtrx[top:bottom, left:right])) 
     }
   }
@@ -834,5 +848,7 @@ mtrx_smoother_v <- function(x, window_size = 3, smoother = mean,
   (out <- list(input_matrix = input_mtrx, smoothed_matrix = output_mtrx))
 }
 
-mtrx_smoother_v(tst_mtrx, add_padding = F, smoother = max)
+"""
+
+
 
