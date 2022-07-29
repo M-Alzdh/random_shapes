@@ -775,7 +775,7 @@ mtrx_smoother <- function(x, window_size = 3, smoother = mean){
 }
 
 
-tst_mtrx <- matrix(runif(16, 0, 10), nrow = 4)
+tst_mtrx <- matrix(ceiling(runif(16, 0, 10)), nrow = 4)
 
 
 
@@ -818,37 +818,23 @@ mtrx_smoother_v <- function(x, window_size = 3, smoother = mean,
       
       top <- max(1, index[1]-num_neighbors)
       print(paste("TOP", top))
-      bottom <- max(1, index[1]+num_neighbors+1)
+      bottom <- min(index[1]+num_neighbors, nrow(output_mtrx))
       print(paste("bottom", bottom))
       
       left <- max(1, index[2]-num_neighbors)
       print(paste("lef", left))
-      right <- max(1, index[2]+num_neighbors+1)
+      right <- min(index[2]+num_neighbors, ncol(output_mtrx))
       print(paste("right", right))
-    }
-  }
-}
-
-mtrx_smoother_v(tst_mtrx)
-
-"""      
-      top <- max(1, index[1]-num_neighbors)
-      #this line causes errors for the bottom-most cells
-      bottom <- max(nrow(output_mtrx), index[1]+num_neighbors)
       
-      left <- max(1, index[2]-num_neighbors)
-      #this line causes errors for the right-most cells
-      right <- max(ncol(output_mtrx), index[2]+num_neighbors)
-      print(top, bottom, left, right)
-      output_mtrx[i, j] <- do.call(smoother, list(x = input_mtrx[top:bottom, left:right])) 
+      output_mtrx[i, j] <- do.call(smoother, list(x = input_mtrx[top:bottom, left:right]))
     }
   }
-  
-  
   (out <- list(input_matrix = input_mtrx, smoothed_matrix = output_mtrx))
 }
 
-"""
+mtrx_smoother_v(tst_mtrx, add_padding = T, pad_size = 2, window_size = 5)
+
+
 
 
 
