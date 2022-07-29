@@ -777,36 +777,12 @@ mtrx_smoother <- function(x, window_size = 3, smoother = mean){
 
 tst_mtrx <- matrix(runif(16, 0, 10), nrow = 4)
 
-lst<- mtrx_smoother(tst_mtrx)
 
-  tb <- as_tibble(lst$smoothed_matrix)
-  colnames(tb) <- as.character(1:ncol(tb))
-  tb <- tb %>%
-    mutate(y = as.character(1:nrow(tb))) %>% 
-    pivot_longer(cols = !y, names_to = 'x', values_to = 'values')
-  
-ggplot(data = tb)+
-    geom_point(aes(x, y, size = values))
-  
-tb2 <- as_tibble(lst$input_matrix)
-  colnames(tb2) <- as.character(1:ncol(tb2))
-  tb2 <- tb2 %>%
-    mutate(y = as.character(1:nrow(tb2))) %>% 
-    pivot_longer(cols = !y, names_to = 'x', values_to = 'values')
-ggplot(data = tb2)+
-    geom_point(aes(x, y, size = values))  
-  
-ggplot()+
-  geom_circle(data = tb, aes(x0 = as.numeric(x) * 100, y0 = as.numeric(y) * 100, r = values/20), fill = "red", alpha = 0.5)+
-  geom_circle(data = tb2, aes(x0 = as.numeric(x) * 100, y0 = as.numeric(y) * 100, r = values/20), fill = "blue", alpha = 0.5)
-  
- ("pivot")
-lst$smoothed_matrix
-?geom_circle
 
 
 # adding a customizable smoother function using do.call
-mtrx_smoother_v <- function(x, window_size = 3, smoother = mean){
+mtrx_smoother_v <- function(x, window_size = 3, smoother = mean,
+                            add_padding = FALSE, pad_size = 1){
   # making sure that the inputs are the correct type size
   ## x must be a matrix
   stopifnot(is.matrix(x))
@@ -817,27 +793,46 @@ mtrx_smoother_v <- function(x, window_size = 3, smoother = mean){
   #getting matrix info
   n_row <- nrow(x)
   n_col <- ncol(x)
+  int_pad_size <- as.integer(pad_size)
+  num_neighbors <- (window_size - 1) / 2
   
   #smoothing
-  ## create empty matrix of the same size and pad the edges with 0's
-  mtrx <- x
-  mtrx <- rbind(0, mtrx, 0)
-  mtrx <- cbind(0, mtrx, 0)
+  ## create 0's matrix of the same size and pad the edges with 0's if add_padding == TRUE
+  if(add_padding == TRUE){
+    h_pad <- matrix(0, nrow = int_pad_size, ncol = n_col)
+    v_pad <- matrix(0, nrow = n_row + 2*int_pad_size, ncol = int_pad_size)
+    input_mtrx <- rbind(h_pad, x, h_pad)
+    input_mtrx <- cbind(v_pad, input_mtrx, v_pad)
+    } else{
+    input_mtrx <- x
+  }
 
-  ## perform moving window smoothing
-  smoothed_mtrx <- mtrx
+  input_mtrx
   
-  for(i in 1:n_row + 1){
-    for(j in 1:n_col + 1){
-      smoothed_mtrx[i, j] <- do.call(smoother, list(x = c(mtrx[i-1, j-1], mtrx[i-1, j], mtrx[i-1, j+1], 
-                                    mtrx[i, j-1], mtrx[i, j], mtrx[i, j+1], 
-                                    mtrx[i+1, j-1], mtrx[i+1, j], mtrx[i+1, j+1])))
+  output_mtrx <- matrix(NA, nrow = nrow(input_mtrx), ncol = ncol(input_mtrx))
+  
+  ## perform moving window smoothing
+  
+  for(i in 1:nrow(output_mtrx)){
+    for(j in 1:ncol(output_mtrx)){
+      
+      index <- c(i, j)
+      
+      top <- max(1, index[1]-num_neighbors)
+      #this line causes errors for the bottom-most cells
+      bottom <- max(1, index[1]+num_neighbors)
+      
+      left <- max(1, index[2]-num_neighbors)
+      #this line causes errors for the right-most cells
+      right <- max(1, index[2]+num_neighbors)
+      
+      output_mtrx[i, j] <- do.call(smoother, list(x = input_mtrx[top:bottom, left:right])) 
     }
   }
   
-  smoothed_mtrx <- smoothed_mtrx[-c(1, n_row+2), -c(1, n_col+2)]
   
-  (out <- list(input_matrix = x, smoothed_matrix = smoothed_mtrx))
+  (out <- list(input_matrix = input_mtrx, smoothed_matrix = output_mtrx))
 }
 
+mtrx_smoother_v(tst_mtrx, add_padding = F, smoother = max)
 

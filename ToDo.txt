@@ -1,1 +1,3 @@
 add the neighborhood selection from focal_ops_py
+
+neighborhood selection causees out of bounds errores now :(
