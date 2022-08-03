@@ -835,6 +835,30 @@ mtrx_smoother_v <- function(x, window_size = 3, smoother = mean,
 mtrx_smoother_v(tst_mtrx, add_padding = T, pad_size = 2, window_size = 5)
 
 
+# Field of letters --------------------------------------------------------
 
+size_mtrx <-  matrix(rnorm(100, 2, 1), nrow = 10, ncol = 10)
+size_mtrx[1:3, 1:3] <- abs(rnorm(9, mean = 10, sd = 2))
+size_mtrx[6:10, 7:10] <- abs(rnorm(20, mean = 10, sd = 2))
+size_mtrx
 
+smoothed_mtrx <- mtrx_smoother_v(size_mtrx)$smoothed_matrix
 
+v <- c(smoothed_mtrx)
+v
+
+text <- tibble(x = rep(seq(1, 5, length.out = 10), 10), y = rep(seq(1, 5, length.out = 10), each = 10),
+               text = sample(LETTERS, 100, replace = T), size = v, angle = runif(100, -15, 15))
+text 
+ggplot(text)+
+  geom_text(aes(x, y, label = text, size = size, angle = angle), 
+            show.legend = F)+
+  coord_fixed()+
+  theme(panel.background = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.text = element_blank())
+
+?geom_text
+?aes

@@ -1,1 +1,12 @@
+create an input check function for the focal ops function
 
+check for NAs in the smoother function
+
+create overlap/tighter distances in field of letters
+
+change font in field of letters
+
+letters on a curve using previous functions
+
+letters on a spiral using text parsing (take text, turn it into
+single letters, plot it on a spiral)
