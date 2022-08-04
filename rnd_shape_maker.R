@@ -851,8 +851,7 @@ text <- tibble(x = rep(seq(1, 5, length.out = 10), 10), y = rep(seq(1, 5, length
                text = sample(LETTERS, 100, replace = T), size = v, angle = runif(100, -15, 15))
 text 
 ggplot(text)+
-  geom_text(aes(x, y, label = text, size = size, angle = angle), 
-            show.legend = F)+
+  geom_text(aes(x, y, label = text, size = size, angle = angle), show.legend = F)+
   coord_fixed()+
   theme(panel.background = element_blank(), 
         panel.grid = element_blank(), 
@@ -860,5 +859,50 @@ ggplot(text)+
         axis.ticks = element_blank(), 
         axis.text = element_blank())
 
-?geom_text
-?aes
+text2 <- tibble(x = rnorm(100, 0, 10), y = rnorm(100, 0, 10),
+               text = sample(LETTERS, 100, replace = T), size = sqrt(x**2+y**2)+1,
+               angle = runif(100, -180, 180), color = rnd_colors(100))
+ggplot(text2)+
+  geom_text(aes(x, y, label = text, size = size, angle = angle, color = color),
+            show.legend = F, family = 'mono')+
+  coord_fixed()+
+  theme(panel.background = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.text = element_blank())
+
+
+# letters on splines ------------------------------------------------------
+
+
+rnd_leters_on_splines <- function(n_letters= 15, n_splines = 10, n_control_points = 5, 
+                                   min_x = 0, max_x = 1, min_y = -0.5, max_y = 0.5, ...){
+  pob_tb <- tibble(x = numeric(), y = numeric(), letter = character(), group = factor())
+  for(i in 1:n_splines){
+    random_points <- tibble(x = c(0, runif(1, min_x/3, max_x/3), seq(min_x, max_x-0.3, length.out = n_control_points), max_x-0.2, max_x),
+                            y = c(0, runif(1, min_y/3, max_y/3), runif(n_control_points, min_y, max_y), runif(1, min_y/3, max_y/3), 0))
+    random_points_matrix <- as.matrix(random_points)
+    pob <- pointsOnBezier(p = random_points_matrix, n = n_letters, method = "evenly_spaced", sub.relative.min.slope = 0.1, print.progress = F)
+    temp_pob_tb <- tibble(x = pob$points[,1],
+                          y = pob$points[,2], 
+                          letter = sample(LETTERS, n_letters, T), 
+                          group = factor(i))
+    pob_tb <- rbind(pob_tb, temp_pob_tb)
+    percent <- round((i/n_splines)*100)
+    writeLines(paste(percent, "...", "%", sep = ""))
+    rm(random_points, random_points_matrix, pob, temp_pob_tb)
+  }
+  ggplot(data = pob_tb)+
+    geom_text(aes(x, y, label = letter, color = group, size = abs(y), angle = runif(n_letters*n_splines, -30, 30)), show.legend = F)+
+    # r is used to randomly make the circle with the line around it larger or smaller
+    #geom_circle(aes(x0 = x, y0 = y, r = r*runif(nrow(pob_tb)), fill = group, linetype = NA), alpha = 1/4, show.legend = F)+
+    coord_fixed()+
+    scale_fill_manual(values = rnd_colors(n_splines, alpha = T))+
+    theme(panel.background = element_blank(), 
+          panel.grid = element_blank(), 
+          axis.title = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.text = element_blank())
+}
+rnd_leters_on_splines(n_splines = 3)
