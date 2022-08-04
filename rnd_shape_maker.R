@@ -906,3 +906,41 @@ rnd_leters_on_splines <- function(n_letters= 15, n_splines = 10, n_control_point
           axis.text = element_blank())
 }
 rnd_leters_on_splines(n_splines = 3)
+
+
+
+rnd_leters_on_splines_custom <- function(input_string, n_splines = 10, n_control_points = 5, 
+                                  min_x = 0, max_x = 1, min_y = -0.5, max_y = 0.5, ...){
+  pob_tb <- tibble(x = numeric(), y = numeric(), letters = character(), group = factor())
+  
+  for(i in 1:n_splines){
+    random_points <- tibble(x = c(0, runif(1, min_x/3, max_x/3), seq(min_x, max_x-0.3, length.out = n_control_points), max_x-0.2, max_x),
+                            y = c(0, runif(1, min_y/3, max_y/3), runif(n_control_points, min_y, max_y), runif(1, min_y/3, max_y/3), 0))
+    random_points_matrix <- as.matrix(random_points)
+    input_str <- str_extract_all(input_string, ".")[[1]]
+    pob <- pointsOnBezier(p = random_points_matrix, n = length(input_str), method = "evenly_spaced", sub.relative.min.slope = 0.1, print.progress = F)
+    temp_pob_tb <- tibble(x = pob$points[,1],
+                          y = pob$points[,2], 
+                          letters = input_str, 
+                          group = factor(i))
+    pob_tb <- rbind(pob_tb, temp_pob_tb)
+    percent <- round((i/n_splines)*100)
+    writeLines(paste(percent, "...", "%", sep = ""))
+    rm(random_points, random_points_matrix, pob, temp_pob_tb)
+  }
+  ggplot(data = pob_tb)+
+    geom_text(aes(x, y, label = letters, color = group, size = abs(y), angle = runif(length(input_str)*n_splines, -30, 30)), show.legend = F)+
+    # r is used to randomly make the circle with the line around it larger or smaller
+    #geom_circle(aes(x0 = x, y0 = y, r = r*runif(nrow(pob_tb)), fill = group, linetype = NA), alpha = 1/4, show.legend = F)+
+    coord_fixed()+
+    scale_fill_manual(values = rnd_colors(n_splines, alpha = T))+
+    theme(panel.background = element_blank(), 
+          panel.grid = element_blank(), 
+          axis.title = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.text = element_blank())
+}
+
+
+rnd_leters_on_splines_custom("lorem ipsum Daijan est", n_splines = 3)
+
