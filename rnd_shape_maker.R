@@ -4,8 +4,8 @@
 library(tidyverse)
 library(ggforce)
 library(bezier)
-
-
+library(gganimate)
+library(gifski)
 ### this function is used throughout to create n random colors, to set 'alpha = T" for variable opacity
 
 rnd_colors <- function(n, alpha = F){
@@ -944,3 +944,40 @@ rnd_leters_on_splines_custom <- function(input_string, n_splines = 10, n_control
 
 rnd_leters_on_splines_custom("lorem ipsum Daijan est", n_splines = 3)
 
+
+# rotating triangle -------------------------------------------------------
+
+
+vert <- tibble(theta = numeric(), x = numeric(),
+               y = numeric(), group = numeric())
+
+thet <-  seq(pi/2, 5/2*pi, length.out = 20)
+
+for(i in seq_along(1:60)){
+  theta = thet[i]
+  x <- c(cos(theta), cos(theta+((2*pi)/3)), cos(theta+((4*pi)/3)))
+  y <- c(sin(theta), sin(theta+((2*pi)/3)), sin(theta+((4*pi)/3)))
+  thet_tb <- rep(thet[i], 3)
+  group = rep(i, 3)
+  tb <- tibble(theta = thet_tb, x = x, y = y, group = group)
+  vert <- rbind(vert, tb)
+  rm(x, y, tb, group, thet_tb)
+}
+
+p <- ggplot(data = vert)+
+  geom_polygon(aes(x, y, group = group),color = "grey50", alpha = 0.2, size = 1.5, fill = NA, show.legend = F)+
+  geom_polygon(aes(x, y, group = group),  color = "white", fill = NA, show.legend = F)+
+  geom_text(aes(x = 0.8, y = -0.9, label = "\n Mohamd Alizadeh \n github.com/M-Alzdh"), color = "grey50")+
+  coord_fixed()+
+  theme(panel.background = element_rect(fill = "black"), 
+        panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.text = element_blank())+
+  transition_reveal(
+    group)+
+  enter_grow()
+
+animate(p, renderer = gifski_renderer())
+anim_save("trg_crc.gif")
+??gifski
