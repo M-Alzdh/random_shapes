@@ -978,6 +978,37 @@ p <- ggplot(data = vert)+
     group)+
   enter_grow()
 
-animate(p, renderer = gifski_renderer())
+animate(p, renderer = gifski_renderer(width = 1000, height = 1000))
 anim_save("trg_crc.gif")
-??gifski
+###
+vert <- tibble(theta = numeric(), x = numeric(),
+               y = numeric(), group = numeric())
+
+thet <-  seq(pi/2, 5/2*pi, length.out = 20)
+
+for(i in seq_along(1:20)){
+  theta = thet[i]
+  size_factor = (rev(thet)[i])/20
+  x <- c(cos(theta), cos(theta+((2*pi)/3)), cos(theta+((4*pi)/3)))*size_factor
+  y <- c(sin(theta), sin(theta+((2*pi)/3)), sin(theta+((4*pi)/3)))*size_factor
+  thet_tb <- rep(thet[i], 3)
+  group = rep(i, 3)
+  tb <- tibble(theta = thet_tb, x = x, y = y, group = group)
+  vert <- rbind(vert, tb)
+  rm(x, y, tb, group, thet_tb)
+}
+
+p <- ggplot(data = vert)+
+  geom_polygon(aes(x, y, group = group),color = "white", alpha = 0.2, fill = NA, show.legend = F)+
+  geom_text(aes(x = 0.3, y = -0.3, label = "\n Mohamd Alizadeh \n github.com/M-Alzdh"), color = "grey50")+
+  coord_fixed()+
+  theme(panel.background = element_rect(fill = "black"), 
+        panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.text = element_blank())+
+  transition_reveal(
+    group)
+animate(p, renderer = gifski_renderer())
+anim_save("trg_crc_rotate_shrink.gif")
+?exit_fade
