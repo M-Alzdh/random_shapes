@@ -1011,4 +1011,40 @@ p <- ggplot(data = vert)+
     group)
 animate(p, renderer = gifski_renderer())
 anim_save("trg_crc_rotate_shrink.gif")
-?exit_fade
+## with spirals
+vert <- tibble(theta = numeric(), x = numeric(),
+               y = numeric(), group = factor())
+
+thet <-  seq(pi/2, 5/2*pi, length.out = 20)
+
+for(i in seq_along(1:20)){
+  theta = thet[i]
+  size_factor = (rev(thet)[i])/20
+  x <- c(cos(theta), cos(theta+((2*pi)/3)), cos(theta+((4*pi)/3)))*size_factor
+  y <- c(sin(theta), sin(theta+((2*pi)/3)), sin(theta+((4*pi)/3)))*size_factor
+  thet_tb <- rep(thet[i], 3)
+  group = as.factor(rep(letters[i], 3))
+  tb <- tibble(theta = thet_tb, x = x, y = y, group = group)
+  vert <- rbind(vert, tb)
+  rm(x, y, tb, group, thet_tb)
+}
+
+vert2 <- vert
+vert2$group <- as_factor(rep(c(letters[1:3]), 20))
+str(vert2)
+p <- ggplot(data = vert)+
+  geom_polygon(aes(x, y, group = group),color = "white", alpha = 0.2, fill = NA, show.legend = F)+
+  geom_line(aes(x, y, group = group), data = vert2, color = "red")+
+  geom_text(aes(x = 0.3, y = -0.3, label = "\n Mohamd Alizadeh \n github.com/M-Alzdh"), color = "grey50")+
+  coord_fixed()+
+  theme(panel.background = element_rect(fill = "black"), 
+        panel.grid = element_blank(), 
+        axis.title = element_blank(), 
+        axis.ticks = element_blank(), 
+        axis.text = element_blank())+
+  transition_reveal(
+    group)
+animate(p, renderer = gifski_renderer())
+anim_save("trg_crc_rotate_shrink.gif")
+vert2
+vert
